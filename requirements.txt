@@ -1,0 +1,4 @@
+python ==  3.12.7
+json == 2.0.9
+matplotlib == 3.9.2
+numpy == 1.26.4
