@@ -27,7 +27,7 @@ color_map = {
 shenon_timelapse = []
 opinion_timelapse = []
 
-def field_generation(i, j, a = 0, b = 0):
+def field_generation(I, J, a = 0, b = 0):
     field = []
     for i in range (I):
         stroka = []
@@ -100,7 +100,7 @@ class Agent:
     def opinion_decider(self, field, construct):
         if self.state == "psycho":
             self.opinion = self.opinion
-        elif self.state == "conf" or "nonconf":
+        elif self.state == "conf" or self.state == "nonconf":
             if construct == "PLUS":
                 i_pos = self.position[0]
                 j_pos = self.position[1]
@@ -268,9 +268,9 @@ def show_map(agents, frames):
                 colored_array[i][j] = color_map['A']
             elif value == 'B':
                 colored_array[i][j] = color_map['B']
-            elif value == '0':
+            elif str(value) == '0':
                 colored_array[i][j] = color_map['0']
-            elif value == '1':
+            elif str(value) == '1':
                 colored_array[i][j] = color_map['1']
 
     frames.append(colored_array)
