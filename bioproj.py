@@ -7,9 +7,10 @@ import os
 import shutil
 import sys
 
-random.seed(int(sys.argv[1])) if len(sys.argv) > 1 else None
+random.seed(int(sys.argv[2])) if len(sys.argv) > 2 else None
+json_name = str(sys.argv[1])
 
-with open('Bioinf_data.json', 'r') as openfile:
+with open(json_name, 'r') as openfile:
  
     # Reading from json file
     json_object = json.load(openfile)
