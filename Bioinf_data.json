@@ -13,7 +13,15 @@
             [0, 1, 0, 1, 0, 0, 1, 0, 1, 1]],
   "a": 2,
   "b": 2,
-  "state": "conf",
-  "construct": "CIRCLE",
+  "interaction_ratios": {
+    "PLUS": 0.0,
+    "CIRCLE": 0.0,
+    "GRAPH": 1.0
+  },
+  "nonconf_ratios": {
+    "PLUS": 0.2,
+    "CIRCLE": 0.2,
+    "GRAPH": 0.2
+  },
   "time": 100
 }

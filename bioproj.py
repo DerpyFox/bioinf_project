@@ -62,10 +62,10 @@ def data_from_json(json_object):
     b = json_object.get('b')
     if field == 0:
         field = field_generation(I, J, a, b)
-    state = json_object.get('state')
-    construct = json_object.get('construct')
+    interaction_ratios = json_object.get('interaction_ratios')
+    nonconf_ratios = json_object.get('nonconf_ratios')
     time = json_object.get('time')
-    return I, J, field, state, construct, time
+    return I, J, field, interaction_ratios, nonconf_ratios, time
 
 def count_opinions(opinions):
     opinions_count = [0, 0]
@@ -90,18 +90,19 @@ def shenon_entropy(x):
     return res
 
 class Agent:
-    def __init__(self, state, opinion, position):
+    def __init__(self, state, opinion, position, interaction=None):
         self.state = state
         self.opinion = opinion
         self.position = position
+        self.interaction = interaction
         self.database = []
     def update(self):
         self.database.append(self.opinion)
-    def opinion_decider(self, field, construct):
+    def opinion_decider(self, field):
         if self.state == "psycho":
             self.opinion = self.opinion
         elif self.state == "conf" or self.state == "nonconf":
-            if construct == "PLUS":
+            if self.interaction == "PLUS":
                 i_pos = self.position[0]
                 j_pos = self.position[1]
                 i_plus1 = (self.position[0] + 1) % I
@@ -139,7 +140,7 @@ class Agent:
                         else:
                             self.opinion = self.opinion
                             
-            elif construct == "CIRCLE":
+            elif self.interaction == "CIRCLE":
                 i_pos = self.position[0]
                 j_pos = self.position[1]
                 i_plus1 = (self.position[0] + 1) % I
@@ -182,7 +183,7 @@ class Agent:
                         else:
                             self.opinion = self.opinion
 
-            if construct == "GRAPH":
+            if self.interaction == "GRAPH":
                 impact_num_i = random.randint(0, I)
                 impact_num_j = random.randint(0, J)
                 if (self.position[0] == impact_num_i and self.position[1] == impact_num_j):
@@ -204,27 +205,51 @@ class Agent:
                     else:
                         self.opinion = field[impact_num_i - 1][impact_num_j - 1]
 
-def agents_init(field, state):
+def agents_init(field, interaction_ratios, nonconf_ratios):
     agents = []
+    total_agents = I * J
+
+    interaction_counts = {
+        interaction: int(total_agents * ratio)
+        for interaction, ratio in interaction_ratios.items()
+    }
+
+    remaining_agents = total_agents - sum(interaction_counts.values())
+    for interaction in list(interaction_counts.keys())[:remaining_agents]:
+        interaction_counts[interaction] += 1
+
+    interaction_pool = []
+    for interaction, count in interaction_counts.items():
+        interaction_pool.extend([interaction] * count)
+    random.shuffle(interaction_pool)
+
+    nonconf_counts = {
+        interaction: int(interaction_counts[interaction] * nonconf_ratios.get(interaction, 0))
+        for interaction in interaction_counts
+    }
+
     for i in range(I):
         for j in range(J):
             value = field[i][j]
+            interaction = interaction_pool.pop()
+
+            is_nonconf = random.random() < (nonconf_counts[interaction] / interaction_counts[interaction])
+            if is_nonconf:
+                nonconf_counts[interaction] -= 1
+                interaction_counts[interaction] -= 1
+
             if value == 0:
-                agent = Agent(state=state, opinion=0, position=(i, j))
-                agent.update()
-                agents.append(agent)
+                agent = Agent(state='nonconf' if is_nonconf else 'conf', opinion=0, position=(i, j), interaction=interaction)
             elif value == 1:
-                agent = Agent(state=state, opinion=1, position=(i, j))
-                agent.update()
-                agents.append(agent)
+                agent = Agent(state='nonconf' if is_nonconf else 'conf', opinion=1, position=(i, j), interaction=interaction)
             elif value == 'A':
-                agent = Agent(state='psycho', opinion=0, position=(i, j))
-                agent.update()
-                agents.append(agent)
+                agent = Agent(state='psycho', opinion=0, position=(i, j), interaction=interaction)
             elif value == 'B':
-                agent = Agent(state='psycho', opinion=1, position=(i, j))
-                agent.update()
-                agents.append(agent)
+                agent = Agent(state='psycho', opinion=1, position=(i, j), interaction=interaction)
+
+            agent.update()
+            agents.append(agent)
+
     return agents
 
 def field_from_agents(agents, psycho = False):
@@ -286,10 +311,10 @@ def show_shenon_map(agents, shenon_frames):
 
     shenon_frames.append(colored_shenon_field)
 
-def agents_field_iteration(agents, construct, visualisation = True):
+def agents_field_iteration(agents, visualisation = True):
     old_field = field_from_agents(agents)
     for agent in agents:
-        agent.opinion_decider(old_field, construct)
+        agent.opinion_decider(old_field)
         agent.update()
     return(agents)
 
@@ -305,7 +330,7 @@ def delete_everything_in_folder(folder_path):
     else:
         print(f"Папка {folder_path} уже пуста. Ничего не удалено.")
 
-def population_opinion_timelapse(time, agents, construct):
+def population_opinion_timelapse(time, agents):
     frames = []
     shenon_frames = []
     
@@ -318,7 +343,7 @@ def population_opinion_timelapse(time, agents, construct):
     
     for i in range(time):
         shenon_base = []
-        new_agents = agents_field_iteration(agents, construct)
+        new_agents = agents_field_iteration(agents)
         database_for_update = []
         for agent in agents:
             database_for_update.append(agent.database)
@@ -331,6 +356,9 @@ def population_opinion_timelapse(time, agents, construct):
         
         opinion_presentage_array.append(opinion_presentage(agents))
         opinion_timelapse.append(field_from_agents(agents, psycho = True))
+        #for agent in agents:
+        #    shenon_base.append(shenon_entropy(agent.database))
+        #shenon_timelapse.append(shenon_base)
 
     time_tmp = list(range(0, time + 1))
     plt.figure(figsize=(10, 5))
@@ -365,6 +393,6 @@ def population_opinion_timelapse(time, agents, construct):
     return agents
 
 delete_everything_in_folder('results')
-I, J, field, state, construct, time = data_from_json(json_object)
-agents = agents_init(field, state)
-res = population_opinion_timelapse(time, agents, construct)
+I, J, field, interaction_ratios, nonconf_ratios, time = data_from_json(json_object)
+agents = agents_init(field, interaction_ratios, nonconf_ratios)
+res = population_opinion_timelapse(time, agents)

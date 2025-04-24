@@ -23,7 +23,15 @@
             [0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0]],
   "a": 5,
   "b": 3,
-  "state": "nonconf",
-  "construct": "PLUS",
+  "interaction_ratios": {
+    "PLUS": 0.9,
+    "CIRCLE": 0.1,
+    "GRAPH": 0.0
+  },
+  "nonconf_ratios": {
+    "PLUS": 0.8,
+    "CIRCLE": 0.2,
+    "GRAPH": 0.5
+  },
   "time": 300
 }

@@ -4,7 +4,15 @@
   "field": 0,
   "a": 10,
   "b": 8,
-  "state": "nonconf",
-  "construct": "CIRCLE",
+  "interaction_ratios": { 
+    "PLUS": 0.3,
+    "CIRCLE": 0.3,
+    "GRAPH": 0.4
+  },
+  "nonconf_ratios": {
+    "PLUS": 0.5,
+    "CIRCLE": 0.0,
+    "GRAPH": 0.5
+  },
   "time": 400
 }
