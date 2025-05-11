@@ -1,0 +1,27 @@
+{
+  "rows": 5,
+  "columns": 5,
+  "ratios": [
+    1,
+    0
+  ],
+  "topology": {
+    "PLUS": 1,
+    "CIRCLE": 0,
+    "FULL": 0
+  },
+  "dumps": [
+    [],
+    [
+      [2, 2]
+    ]
+  ],
+  "nonconf_coords": [
+    [1, 0]
+  ],
+  "random_state": 43,
+  "time": 100,
+  "path": "C:/Users/andrew/Downloads/Task_1/run7",
+  "n_pixels": 300,
+  "delete": false
+}

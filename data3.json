@@ -2,17 +2,17 @@
   "I": 50,
   "J": 40,
   "field": 0,
-  "a": 10,
-  "b": 8,
+  "a": 0,
+  "b": 0,
   "interaction_ratios": { 
     "PLUS": 0.3,
     "CIRCLE": 0.3,
     "GRAPH": 0.4
   },
   "nonconf_ratios": {
-    "PLUS": 0.5,
+    "PLUS": 0.0,
     "CIRCLE": 0.0,
-    "GRAPH": 0.5
+    "GRAPH": 0.0
   },
   "time": 400
 }

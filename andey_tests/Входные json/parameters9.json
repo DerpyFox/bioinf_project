@@ -1,0 +1,27 @@
+{
+  "rows": 10,
+  "columns": 15,
+  "ratios": [
+    1,
+    0
+  ],
+  "topology": {
+    "PLUS": 0,
+    "CIRCLE": 1,
+    "FULL": 0
+  },
+  "D": 0.5,
+  "dumps": [
+    [
+      [0, 0]
+    ],
+    [
+      [9, 14]
+    ]
+  ],
+  "random_state": 45,
+  "time": 100,
+  "path": "C:/Users/andrew/Downloads/Task_1/r2",
+  "n_pixels": 300,
+  "delete": false
+}

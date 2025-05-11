@@ -28,10 +28,6 @@
     "CIRCLE": 0.1,
     "GRAPH": 0.0
   },
-  "nonconf_ratios": {
-    "PLUS": 0.8,
-    "CIRCLE": 0.2,
-    "GRAPH": 0.5
-  },
+  "nonconf_coords": [[0, 0], [5, 5], [10, 10], [1, 1], [6, 6], [11, 11]],
   "time": 300
 }

@@ -9,10 +9,12 @@ import sys
 
 random.seed(int(sys.argv[2])) if len(sys.argv) > 2 else None
 json_name = str(sys.argv[1])
+json_base_name = os.path.splitext(os.path.basename(json_name))[0]
+random_state = sys.argv[2] if len(sys.argv) > 2 else "default"
+folder_name = f"{json_base_name}_{random_state}"
 
 with open(json_name, 'r') as openfile:
  
-    # Reading from json file
     json_object = json.load(openfile)
 
 json_object.keys()
@@ -56,16 +58,21 @@ def field_generation(I, J, a = 0, b = 0):
 def data_from_json(json_object):
     I = json_object.get('I')
     J = json_object.get('J')
-    #print(json_object.keys())
     field = json_object.get('field')
     a = json_object.get('a')
     b = json_object.get('b')
     if field == 0:
         field = field_generation(I, J, a, b)
     interaction_ratios = json_object.get('interaction_ratios')
-    nonconf_ratios = json_object.get('nonconf_ratios')
+    nonconf_coords = json_object.get('nonconf_coords', None)
+    if nonconf_coords:
+        nonconf_coords = [
+            coord for coord in nonconf_coords
+            if field[coord[0]][coord[1]] not in ['A', 'B']
+        ]
+    nonconf_ratios = json_object.get('nonconf_ratios', None)
     time = json_object.get('time')
-    return I, J, field, interaction_ratios, nonconf_ratios, time
+    return I, J, field, interaction_ratios, nonconf_coords, nonconf_ratios, time
 
 def count_opinions(opinions):
     opinions_count = [0, 0]
@@ -205,7 +212,7 @@ class Agent:
                     else:
                         self.opinion = field[impact_num_i - 1][impact_num_j - 1]
 
-def agents_init(field, interaction_ratios, nonconf_ratios):
+def agents_init(field, interaction_ratios, nonconf_coords=None, nonconf_ratios=None):
     agents = []
     total_agents = I * J
 
@@ -223,29 +230,39 @@ def agents_init(field, interaction_ratios, nonconf_ratios):
         interaction_pool.extend([interaction] * count)
     random.shuffle(interaction_pool)
 
-    nonconf_counts = {
-        interaction: int(interaction_counts[interaction] * nonconf_ratios.get(interaction, 0))
-        for interaction in interaction_counts
-    }
+    nonconf_positions = set()
+    if nonconf_coords:
+        nonconf_positions = set(map(tuple, nonconf_coords))
+
+    nonconf_counts = None
+    if not nonconf_coords and nonconf_ratios:
+        nonconf_counts = {
+            interaction: int(interaction_counts[interaction] * nonconf_ratios.get(interaction, 0))
+            for interaction in interaction_counts
+        }
 
     for i in range(I):
         for j in range(J):
             value = field[i][j]
             interaction = interaction_pool.pop()
 
-            is_nonconf = random.random() < (nonconf_counts[interaction] / interaction_counts[interaction])
-            if is_nonconf:
-                nonconf_counts[interaction] -= 1
-                interaction_counts[interaction] -= 1
+            # Проверяем, является ли агент нонконформистом
+            if (i, j) in nonconf_positions:
+                agent = Agent(state='nonconf', opinion=value, position=(i, j), interaction=interaction)
+            else:
+                is_nonconf = False
+                if nonconf_counts:
+                    is_nonconf = random.random() < (nonconf_counts[interaction] / interaction_counts[interaction])
+                    if is_nonconf:
+                        nonconf_counts[interaction] -= 1
+                        interaction_counts[interaction] -= 1
 
-            if value == 0:
-                agent = Agent(state='nonconf' if is_nonconf else 'conf', opinion=0, position=(i, j), interaction=interaction)
-            elif value == 1:
-                agent = Agent(state='nonconf' if is_nonconf else 'conf', opinion=1, position=(i, j), interaction=interaction)
-            elif value == 'A':
-                agent = Agent(state='psycho', opinion=0, position=(i, j), interaction=interaction)
-            elif value == 'B':
-                agent = Agent(state='psycho', opinion=1, position=(i, j), interaction=interaction)
+                if value == 'A':
+                    agent = Agent(state='psycho', opinion=0, position=(i, j), interaction=interaction)
+                elif value == 'B':
+                    agent = Agent(state='psycho', opinion=1, position=(i, j), interaction=interaction)
+                else:
+                    agent = Agent(state='nonconf' if is_nonconf else 'conf', opinion=value, position=(i, j), interaction=interaction)
 
             agent.update()
             agents.append(agent)
@@ -283,7 +300,7 @@ def opinion_presentage(agents):
     return (amount/tmp_len)
 
 def show_map(agents, frames):
-    array_data = np.array(field_from_agents(agents, psycho = True))
+    array_data = np.array(field_from_agents(agents, psycho=True))
     colored_array = np.zeros((array_data.shape[0], array_data.shape[1], 3))
 
     for i in range(array_data.shape[0]):
@@ -297,6 +314,12 @@ def show_map(agents, frames):
                 colored_array[i][j] = color_map['0']
             elif str(value) == '1':
                 colored_array[i][j] = color_map['1']
+
+    for agent in agents:
+        if agent.state == 'nonconf':
+            x, y = agent.position
+            colored_array[x, y] = colored_array[x, y] * 0.7
+            colored_array[x, y] += [0.0, 0.0, 0.0]
 
     frames.append(colored_array)
 
@@ -330,6 +353,25 @@ def delete_everything_in_folder(folder_path):
     else:
         print(f"Папка {folder_path} уже пуста. Ничего не удалено.")
 
+def create_unique_folder(base_folder, folder_name):
+    folder_path = os.path.join(base_folder, folder_name)
+    if not os.path.exists(base_folder):
+        os.mkdir(base_folder)
+
+    if not os.path.exists(folder_path):
+        os.mkdir(folder_path)
+    else:
+        counter = 1
+        while True:
+            new_folder_path = f"{folder_path}_{counter}"
+            if not os.path.exists(new_folder_path):
+                os.mkdir(new_folder_path)
+                folder_path = new_folder_path
+                break
+            counter += 1
+
+    return folder_path
+
 def population_opinion_timelapse(time, agents):
     frames = []
     shenon_frames = []
@@ -337,12 +379,17 @@ def population_opinion_timelapse(time, agents):
     show_map(agents, frames)
     show_shenon_map(agents, shenon_frames)
     
+    total_agents = len(agents)
+    psycho_count = sum(1 for agent in agents if agent.state == 'psycho')
+    nonconf_count = sum(1 for agent in agents if agent.state == 'nonconf')
+    psycho_percentage = psycho_count / total_agents * 100
+    nonconf_percentage = nonconf_count / total_agents * 100
+
     opinion_presentage_array = []
     opinion_presentage_array.append(opinion_presentage(agents))
     opinion_timelapse.append(field_from_agents(agents, psycho = True))
     
     for i in range(time):
-        shenon_base = []
         new_agents = agents_field_iteration(agents)
         database_for_update = []
         for agent in agents:
@@ -364,35 +411,61 @@ def population_opinion_timelapse(time, agents):
     plt.figure(figsize=(10, 5))
     plt.plot(time_tmp, opinion_presentage_array, label='Процент мнения А', color='blue')  
     plt.title('График значений от времени')
-    plt.xlabel('Время')  # Подпись оси X
-    plt.ylabel('Значения')  # Подпись оси Y
-    plt.ylim(0, 1)  # Ограничение по оси Y от 0 до 1
+    plt.xlabel('Время')  
+    plt.ylabel('Значения')  
+    plt.ylim(0, 1) 
     plt.grid()
     plt.legend()
     #plt.show()
-    plt.savefig('results/opinion_presentage.png')
+    plt.text(
+        time * 0.79, 0.8,
+        f"Упёртые: {psycho_percentage:.1f}%\nНонконформисты: {nonconf_percentage:.1f}%",
+        fontsize=10,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
 
-    fig, ax = plt.subplots()
+    plt.savefig(os.path.join(results_folder, 'opinion_presentage.png'))
+    #plt.savefig('results/opinion_presentage.png')
+
+    fig, ax = plt.subplots(figsize=(12, 6))
     ims = []
-    for frame in frames:
+    for t, frame in enumerate(frames):
         im = ax.imshow(frame, animated=True)
-        ims.append([im])
+        time_text = ax.text(0.02, 1.05, f't = {t}', transform=ax.transAxes, color='white', fontsize=10, bbox=dict(facecolor='black', alpha=0.5))
+        ims.append([im, time_text])
+
+    ax.set_title('Карта мнений')
+    ax.set_xlabel('Размер поля X')
+    ax.set_ylabel('Размер поля Y')
+    legend_elements = [
+        plt.Line2D([0], [0], color=color_map['A'], lw=4, label='Упёртые (A)'),
+        plt.Line2D([0], [0], color=color_map['B'], lw=4, label='Упёртые (B)'),
+        plt.Line2D([0], [0], color=color_map['0'], lw=4, label='Мнение 0'),
+        plt.Line2D([0], [0], color=color_map['1'], lw=4, label='Мнение 1'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='black', markersize=10, label='Нонконформисты')
+    ]
+    ax.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1.05, 0.5))
 
     ani = animation.ArtistAnimation(fig, ims, interval=100, blit=True, repeat_delay=1000)
-    ani.save('results/opinion.gif', writer='ffmpeg')
+    ani.save(os.path.join(results_folder, 'opinion.gif'), writer='ffmpeg')
 
     fig2, ax2 = plt.subplots()
     ims2 = []
-    for shenon_frame in shenon_frames:
+    for t, shenon_frame in enumerate(shenon_frames):
         im2 = ax2.imshow(shenon_frame, animated=True)
-        ims2.append([im2])
+        time_text2 = ax2.text(0.02, 1.05, f't = {t}', transform=ax2.transAxes, color='white', fontsize=10, bbox=dict(facecolor='black', alpha=0.5))
+        ims2.append([im2, time_text2])
+
+    ax2.set_title('Карта энтропии Шеннона')
+    ax2.set_xlabel('Размер поля X')
+    ax2.set_ylabel('Размер поля Y')
+    cbar = plt.colorbar(im2, ax=ax2)
+    cbar.set_label('Энтропия Шеннона')
 
     ani2 = animation.ArtistAnimation(fig2, ims2, interval=100, blit=True, repeat_delay=1000)
-    ani2.save('results/shenon.gif', writer='ffmpeg')
-    
-    return agents
+    ani2.save(os.path.join(results_folder, 'shenon.gif'), writer='ffmpeg')
 
-delete_everything_in_folder('results')
-I, J, field, interaction_ratios, nonconf_ratios, time = data_from_json(json_object)
-agents = agents_init(field, interaction_ratios, nonconf_ratios)
+results_folder = create_unique_folder('results', folder_name)
+I, J, field, interaction_ratios, nonconf_coords, nonconf_ratios, time = data_from_json(json_object)
+agents = agents_init(field, interaction_ratios, nonconf_coords, nonconf_ratios)
 res = population_opinion_timelapse(time, agents)

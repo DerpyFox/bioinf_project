@@ -1,0 +1,33 @@
+{
+  "rows": 20,
+  "columns": 20,
+  "ratios": [
+    0.3,
+    0.7
+  ],
+  "topology": {
+    "PLUS": 0.2,
+    "CIRCLE": 0.8,
+    "FULL": 0
+  },
+  "D": 1,
+  "dumps": [
+    [
+      [0, 0],
+      [19, 19]
+    ],
+    [
+      [19, 0],
+      [0, 19]
+    ]
+  ],
+  "nonconf_coords": [
+    [16, 15],
+    [4, 3]
+  ],
+  "random_state": 45,
+  "time": 200,
+  "path": "C:/Users/andrew/Downloads/Task_1/r4",
+  "n_pixels": 300,
+  "delete": false
+}

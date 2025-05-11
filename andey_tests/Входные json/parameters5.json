@@ -1,0 +1,11 @@
+{
+  "field": [
+    ["0CD", "1P", "1P"],
+    ["1P", "1F", "1C"],
+    ["1C", "1P", "1F"]
+  ],
+  "random_state": 42,
+  "time": 100,
+  "delete": false,	
+  "path": "C:/Users/andrew/Downloads/Task_1/run5"
+}
